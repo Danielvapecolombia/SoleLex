@@ -94,7 +94,8 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onSelectContract }) =>
         {/* Chart Section */}
         <div className="lg:col-span-2 bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-900 mb-6">Estado de Contratos</h3>
-          <div className="h-64">
+          {/* w-full added to ensure container has width in grid context */}
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={complianceData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
