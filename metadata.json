@@ -1,0 +1,5 @@
+{
+  "name": "SoleLex CLM",
+  "description": "Sistema de gestión del ciclo de vida de contratos (CLM) para SoleLex, con automatización por IA, alertas de cumplimiento y gestión de plantillas.",
+  "requestFramePermissions": []
+}
