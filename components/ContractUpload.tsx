@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { UploadCloud, FileText, Loader2, FileType, AlertTriangle } from 'lucide-react';
+import { UploadCloud, FileText, Loader2, AlertTriangle, Lock } from 'lucide-react';
 import { analyzeContractContent } from '../services/geminiService';
+import { openDrivePicker, downloadFileContent } from '../services/googleDriveService';
 import { Contract } from '../types';
 import * as pdfjsLibModule from 'pdfjs-dist';
 
@@ -10,30 +11,30 @@ const pdfjsLib = (pdfjsLibModule as any).default || pdfjsLibModule;
 // Configurar el worker de PDF.js usando UNPKG para mayor estabilidad
 if (pdfjsLib.GlobalWorkerOptions) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
-} else {
-    console.warn("PDF.js GlobalWorkerOptions is not available.");
 }
 
 interface ContractUploadProps {
   onAnalysisComplete: (contract: Contract) => void;
+  isGuest?: boolean;
 }
 
-const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) => {
+const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete, isGuest }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showDriveModal, setShowDriveModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Simulated Drive Files
-  const driveFiles = [
-    { id: '1', name: 'Contrato_Servicios_Tech_2024.pdf', date: '2024-05-10', type: 'pdf' },
-    { id: '2', name: 'Acuerdo_Confidencialidad_NDA.txt', date: '2024-04-22', type: 'text' },
-    { id: '3', name: 'Renovación_Licencias_Software.pdf', date: '2024-06-01', type: 'pdf' },
-  ];
+  const extractTextFromBuffer = async (arrayBuffer: ArrayBuffer, mimeType: string): Promise<string> => {
+     if (mimeType.includes('pdf')) {
+        return extractTextFromPdf(arrayBuffer);
+     } else {
+        // Assume text/plain
+        const decoder = new TextDecoder('utf-8');
+        return decoder.decode(arrayBuffer);
+     }
+  };
 
-  const extractTextFromPdf = async (file: File): Promise<string> => {
+  const extractTextFromPdf = async (arrayBuffer: ArrayBuffer): Promise<string> => {
     try {
-      const arrayBuffer = await file.arrayBuffer();
       if (!pdfjsLib.getDocument) {
           throw new Error("PDF.js library not fully loaded.");
       }
@@ -60,7 +61,7 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
       
     } catch (e: any) {
       console.error("Error parsing PDF", e);
-      throw new Error(`Error técnico leyendo PDF: ${e.message || e}. Si el error persiste, intente convertir el PDF a texto o usar otro navegador.`);
+      throw new Error(`Error técnico leyendo PDF: ${e.message || e}.`);
     }
   };
 
@@ -90,13 +91,18 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
     }
   };
 
-  const processFile = async (file: File) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     setIsProcessing(true);
     setError(null);
     try {
       let text = '';
+      const arrayBuffer = await file.arrayBuffer();
+      
       if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-        text = await extractTextFromPdf(file);
+        text = await extractTextFromPdf(arrayBuffer);
       } else {
         text = await file.text();
       }
@@ -107,30 +113,34 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    processFile(file);
-  };
-
-  const handleDriveSelect = async (file: { name: string, type: string }) => {
-    setShowDriveModal(false);
-    
-    // Simulación
-    let content = "";
-    if (file.type === 'pdf') {
-       content = `--- Página 1 ---\nCONTRATO DE SERVICIOS PROFESIONALES (Simulación PDF)...`;
-    } else {
-       content = `CONTRATO SIMPLE DE EJEMPLO...`;
+  const handleDriveClick = async () => {
+    if (isGuest) {
+      alert("🔒 Acceso a Google Drive restringido\n\nEsta función requiere iniciar sesión con una cuenta de Google para acceder a tus documentos en la nube. En modo invitado, por favor utiliza la opción 'Subir Archivo'.");
+      return;
     }
-    processText(content, file.name, 'drive');
+
+    try {
+      const file = await openDrivePicker();
+      if (file) {
+        setIsProcessing(true);
+        setError(null);
+        // Download content
+        const buffer = await downloadFileContent(file.id);
+        const text = await extractTextFromBuffer(buffer, file.mimeType);
+        await processText(text, file.name, 'drive');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError("Error conectando con Google Drive: " + e.message);
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto pt-6 px-4 md:pt-10 md:px-6">
       <div className="text-center mb-8 md:mb-10">
         <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Analizar Nuevo Contrato</h2>
-        <p className="text-slate-500 mt-2 text-sm md:text-base">Sube un documento PDF o texto, o impórtalo desde Google Drive.</p>
+        <p className="text-slate-500 mt-2 text-sm md:text-base">Sube un documento PDF o texto, o impórtalo directamente desde tu Google Drive.</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
@@ -140,12 +150,25 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
             className={`border-2 border-dashed rounded-xl p-6 md:p-12 flex flex-col items-center justify-center transition-colors ${isDragging ? 'border-[#1D99CC] bg-blue-50' : 'border-slate-300 hover:border-slate-400'}`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
+            onDrop={async (e) => {
               e.preventDefault();
               setIsDragging(false);
               const file = e.dataTransfer.files[0];
               if (file) {
-                 processFile(file);
+                 setIsProcessing(true);
+                 try {
+                    let text = '';
+                    const arrayBuffer = await file.arrayBuffer();
+                    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+                        text = await extractTextFromPdf(arrayBuffer);
+                    } else {
+                        text = await file.text();
+                    }
+                    await processText(text, file.name, 'upload');
+                 } catch(err: any) {
+                     setError(err.message);
+                     setIsProcessing(false);
+                 }
               }
             }}
           >
@@ -161,13 +184,16 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
                 Subir Archivo
                 <input type="file" className="hidden" accept=".pdf,.txt,.md" onChange={handleFileUpload} />
               </label>
+              
               <span className="hidden sm:flex items-center text-slate-400">o</span>
+              
               <button 
-                onClick={() => setShowDriveModal(true)}
+                onClick={handleDriveClick}
                 className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center justify-center"
               >
                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5 mr-2" />
                 Google Drive
+                {isGuest && <Lock className="h-3 w-3 ml-2 text-slate-400" />}
               </button>
             </div>
           </div>
@@ -179,47 +205,7 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
           <div className="bg-white p-8 rounded-xl shadow-xl flex flex-col items-center max-w-sm text-center mx-4">
             <Loader2 className="h-12 w-12 text-[#1D99CC] animate-spin mb-4" />
             <h3 className="text-xl font-bold text-slate-900">Procesando Documento...</h3>
-            <p className="text-slate-500 mt-2 text-sm">Extrayendo texto y analizando condiciones legales, plazos y montos.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Drive Modal */}
-      {showDriveModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
-          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 flex items-center">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5 mr-2" />
-                Seleccionar desde Drive
-              </h3>
-              <button onClick={() => setShowDriveModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <div className="p-4 max-h-96 overflow-y-auto">
-              <p className="text-sm text-slate-500 mb-3">Archivos Recientes</p>
-              <div className="space-y-2">
-                {driveFiles.map(file => (
-                  <button 
-                    key={file.id}
-                    onClick={() => handleDriveSelect(file)}
-                    className="w-full flex items-center p-3 hover:bg-[#E1F3FA] border border-transparent hover:border-[#1D99CC]/30 rounded-lg transition-all group"
-                  >
-                    {file.type === 'pdf' ? (
-                       <FileType className="h-8 w-8 text-red-400 group-hover:text-red-500 mr-3" />
-                    ) : (
-                       <FileText className="h-8 w-8 text-slate-400 group-hover:text-[#1D99CC] mr-3" />
-                    )}
-                    <div className="text-left">
-                      <p className="font-medium text-slate-700 group-hover:text-[#1D99CC]">{file.name}</p>
-                      <p className="text-xs text-slate-400">{file.date}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="p-4 border-t border-slate-200 bg-slate-50 text-right">
-              <button onClick={() => setShowDriveModal(false)} className="text-sm text-slate-500 hover:text-slate-800">Cancelar</button>
-            </div>
+            <p className="text-slate-500 mt-2 text-sm">Extrayendo texto y analizando condiciones legales.</p>
           </div>
         </div>
       )}

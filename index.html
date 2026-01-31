@@ -6,6 +6,10 @@
     <title>SoleLex CLM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google API Scripts -->
+    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -49,8 +53,17 @@
 }
 </script>
 <script>
-  // Prevents "process is not defined" crash in browser environments
-  window.process = window.process || { env: { API_KEY: '' } };
+  // Setup environment from LocalStorage or defaults
+  const storedConfig = localStorage.getItem('solelex_config');
+  const config = storedConfig ? JSON.parse(storedConfig) : {};
+
+  window.process = window.process || { 
+    env: { 
+      GEMINI_API_KEY: config.GEMINI_API_KEY || '', 
+      GOOGLE_API_KEY: config.GOOGLE_API_KEY || '', 
+      CLIENT_ID: config.CLIENT_ID || '' 
+    } 
+  };
 </script>
 </head>
   <body>

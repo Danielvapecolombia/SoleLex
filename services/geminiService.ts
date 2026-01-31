@@ -1,7 +1,8 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ContractAnalysis } from "../types";
 
-const apiKey = process.env.API_KEY || ''; // Ensure this is set in your environment
+// Use GEMINI_API_KEY as set in ConfigWizard/index.html
+const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || ''; 
 const ai = new GoogleGenAI({ apiKey });
 
 // Schema descriptions translated to Spanish to guide the model towards Spanish output

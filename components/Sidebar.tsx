@@ -7,9 +7,10 @@ interface SidebarProps {
   onChangeView: (view: ViewState) => void;
   isOpen: boolean;
   onClose: () => void;
+  user: { name: string; email: string; picture: string; isGuest?: boolean } | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, onClose, user }) => {
   const menuItems = [
     { id: ViewState.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: ViewState.CONTRACT_LIST, label: 'Mis Contratos', icon: FileText },
@@ -80,13 +81,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, on
             <Settings className="h-5 w-5" />
             <span className="font-medium">Configuración</span>
           </button>
-          <div className="mt-4 flex items-center px-4 space-x-3 bg-black/20 p-3 rounded-xl backdrop-blur-sm">
-            <div className="h-9 w-9 rounded-full bg-white text-[#1D99CC] flex items-center justify-center text-sm font-bold shadow-sm shrink-0">JT</div>
-            <div className="text-sm overflow-hidden">
-              <p className="font-medium text-white truncate">Juan C Toro</p>
-              <p className="text-blue-100 text-xs truncate">Abogado Senior</p>
+          {user && (
+            <div className="mt-4 flex items-center px-4 space-x-3 bg-black/20 p-3 rounded-xl backdrop-blur-sm">
+              <img src={user.picture} alt="Avatar" className="h-9 w-9 rounded-full border border-white/20 shadow-sm shrink-0" />
+              <div className="text-sm overflow-hidden">
+                <p className="font-medium text-white truncate">{user.name}</p>
+                <p className="text-blue-100 text-xs truncate">
+                  {user.isGuest ? 'Modo Invitado' : 'Abogado'}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>

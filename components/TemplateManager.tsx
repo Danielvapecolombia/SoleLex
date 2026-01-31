@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { PenTool, Copy, Download, UploadCloud, Loader2, FileText, FileType, RefreshCw, Image as ImageIcon, Check } from 'lucide-react';
+import { PenTool, Copy, Download, UploadCloud, Loader2, FileText, RefreshCw, Image as ImageIcon, Check, Lock } from 'lucide-react';
 import { analyzeTemplateVariables, TemplateAnalysis } from '../services/geminiService';
+import { openDrivePicker, downloadFileContent } from '../services/googleDriveService';
 import * as pdfjsLibModule from 'pdfjs-dist';
 // @ts-ignore
 import mammoth from 'mammoth';
@@ -12,28 +13,22 @@ if (pdfjsLib.GlobalWorkerOptions) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 }
 
-const TemplateManager: React.FC = () => {
+interface TemplateManagerProps {
+    isGuest?: boolean;
+}
+
+const TemplateManager: React.FC<TemplateManagerProps> = ({ isGuest }) => {
   const [step, setStep] = useState<'upload' | 'fill'>('upload');
   const [isProcessing, setIsProcessing] = useState(false);
   const [templateAnalysis, setTemplateAnalysis] = useState<TemplateAnalysis | null>(null);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [generatedDoc, setGeneratedDoc] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
-  const [showDriveModal, setShowDriveModal] = useState(false);
 
-  // Simulated Drive Files for Templates
-  const driveFiles = [
-    { id: '1', name: 'Plantilla_Contrato_Servicios.docx', date: '2024-01-15', type: 'docx' },
-    { id: '2', name: 'NDA_Estandar_Empresa.pdf', date: '2023-11-20', type: 'pdf' },
-    { id: '3', name: 'Formato_Renovacion.txt', date: '2024-02-10', type: 'text' },
-  ];
-
-  const extractText = async (file: File): Promise<string> => {
-    const fileType = file.name.split('.').pop()?.toLowerCase();
+  const extractTextFromBuffer = async (arrayBuffer: ArrayBuffer, fileName: string): Promise<string> => {
+    const fileType = fileName.split('.').pop()?.toLowerCase();
 
     if (fileType === 'pdf') {
-       const arrayBuffer = await file.arrayBuffer();
-       
        const loadingTask = pdfjsLib.getDocument({ 
          data: arrayBuffer,
          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
@@ -54,19 +49,21 @@ const TemplateManager: React.FC = () => {
        return pageTexts.join('\n\n');
 
     } else if (fileType === 'docx') {
-       const arrayBuffer = await file.arrayBuffer();
        const result = await mammoth.extractRawText({ arrayBuffer });
        return result.value;
     } else {
        // Assume text
-       return await file.text();
+       const decoder = new TextDecoder('utf-8');
+       return decoder.decode(arrayBuffer);
     }
   };
 
   const handleFileUpload = async (file: File) => {
     setIsProcessing(true);
     try {
-        const text = await extractText(file);
+        const arrayBuffer = await file.arrayBuffer();
+        const text = await extractTextFromBuffer(arrayBuffer, file.name);
+        
         if (!text.trim()) throw new Error("No se pudo extraer texto del archivo.");
         
         const analysis = await analyzeTemplateVariables(text);
@@ -81,40 +78,44 @@ const TemplateManager: React.FC = () => {
         setStep('fill');
     } catch (error) {
         console.error(error);
-        alert("Error procesando la plantilla. Puede que el documento sea demasiado grande o ilegible.");
+        alert("Error procesando la plantilla.");
     } finally {
         setIsProcessing(false);
     }
   };
 
-  const handleDriveSelect = async (file: { name: string, type: string }) => {
-    setShowDriveModal(false);
-    setIsProcessing(true);
-    
-    setTimeout(async () => {
-        let content = "";
-        if (file.type === 'docx') {
-            content = "CONTRATO DE SERVICIOS\n\nEntre [NOMBRE_CLIENTE] y [NOMBRE_PROVEEDOR]...\nFecha: ______\nMonto: ______\n\nFOTO PROYECTO ANEXO";
-        } else if (file.type === 'pdf') {
-            content = "ACUERDO DE CONFIDENCIALIDAD\n\nEste acuerdo se firma el día [DIA] del mes [MES] del año [AÑO].\nParte Reveladora: [•]\nParte Receptora: (*)";
-        } else {
-            content = "Formato simple... Nombre: [NOMBRE]";
-        }
+  const handleDriveSelect = async () => {
+    if (isGuest) {
+      alert("🔒 Acceso a Google Drive restringido\n\nEsta función requiere iniciar sesión con una cuenta de Google para acceder a tus documentos en la nube. En modo invitado, por favor utiliza la opción 'Subir Documento'.");
+      return;
+    }
 
-        try {
-            const analysis = await analyzeTemplateVariables(content);
+    try {
+        const file = await openDrivePicker();
+        if (file) {
+            setIsProcessing(true);
+            const buffer = await downloadFileContent(file.id);
+            const text = await extractTextFromBuffer(buffer, file.name);
+            
+             if (!text.trim()) throw new Error("No se pudo extraer texto del archivo.");
+        
+            const analysis = await analyzeTemplateVariables(text);
             setTemplateAnalysis(analysis);
+            
             const initialValues: Record<string, string> = {};
             analysis.variables.forEach(v => initialValues[v] = '');
             setFormValues(initialValues);
+            
             updatePreview(initialValues, analysis);
+            
             setStep('fill');
-        } catch(e) {
-            alert("Error simulado en análisis");
-        } finally {
-            setIsProcessing(false);
         }
-    }, 1500);
+    } catch (e: any) {
+        console.error(e);
+        alert("Error cargando desde Drive: " + e.message);
+    } finally {
+        setIsProcessing(false);
+    }
   };
 
   const isImageField = (fieldName: string) => {
@@ -225,13 +226,16 @@ const TemplateManager: React.FC = () => {
                             Subir Documento
                             <input type="file" className="hidden" accept=".pdf,.docx,.txt" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
                         </label>
+                        
                         <span className="hidden sm:flex items-center text-slate-400">o</span>
+                        
                         <button 
-                            onClick={() => setShowDriveModal(true)}
+                            onClick={handleDriveSelect}
                             className="px-6 py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center justify-center"
                         >
                             <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5 mr-2" />
                             Google Drive
+                            {isGuest && <Lock className="h-3 w-3 ml-2 text-slate-400" />}
                         </button>
                     </div>
                 </div>
@@ -244,45 +248,6 @@ const TemplateManager: React.FC = () => {
                         <Loader2 className="h-12 w-12 text-[#1D99CC] animate-spin mb-4" />
                         <h3 className="text-xl font-bold text-slate-900">Analizando Plantilla...</h3>
                         <p className="text-slate-500 mt-2 text-sm">Identificando espacios, variables y zonas de imagen.</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Drive Modal */}
-            {showDriveModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
-                    <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
-                        <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800 flex items-center">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5 mr-2" />
-                                Seleccionar Plantilla
-                            </h3>
-                            <button onClick={() => setShowDriveModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-                        </div>
-                        <div className="p-4 max-h-96 overflow-y-auto">
-                            <p className="text-sm text-slate-500 mb-3">Mis Unidades</p>
-                            <div className="space-y-2">
-                                {driveFiles.map(file => (
-                                <button 
-                                    key={file.id}
-                                    onClick={() => handleDriveSelect(file)}
-                                    className="w-full flex items-center p-3 hover:bg-[#E1F3FA] border border-transparent hover:border-[#1D99CC]/30 rounded-lg transition-all group"
-                                >
-                                    {file.type === 'pdf' ? (
-                                        <FileType className="h-8 w-8 text-red-400 group-hover:text-red-500 mr-3" />
-                                    ) : file.type === 'docx' ? (
-                                        <FileText className="h-8 w-8 text-blue-500 group-hover:text-blue-600 mr-3" />
-                                    ) : (
-                                        <FileText className="h-8 w-8 text-slate-400 group-hover:text-[#1D99CC] mr-3" />
-                                    )}
-                                    <div className="text-left">
-                                        <p className="font-medium text-slate-700 group-hover:text-[#1D99CC]">{file.name}</p>
-                                        <p className="text-xs text-slate-400">{file.date}</p>
-                                    </div>
-                                </button>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 </div>
             )}
