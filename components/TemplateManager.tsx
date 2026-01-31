@@ -34,7 +34,6 @@ const TemplateManager: React.FC = () => {
     if (fileType === 'pdf') {
        const arrayBuffer = await file.arrayBuffer();
        
-       // Enhanced PDF load options
        const loadingTask = pdfjsLib.getDocument({ 
          data: arrayBuffer,
          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
@@ -44,7 +43,6 @@ const TemplateManager: React.FC = () => {
        
        const pdf = await loadingTask.promise;
        
-       // Procesamiento paralelo de páginas
        const pagePromises = Array.from({ length: pdf.numPages }, (_, i) => i + 1).map(async (pageNum) => {
          const page = await pdf.getPage(pageNum);
          const textContent = await page.getTextContent();
@@ -74,12 +72,10 @@ const TemplateManager: React.FC = () => {
         const analysis = await analyzeTemplateVariables(text);
         setTemplateAnalysis(analysis);
         
-        // Init form values
         const initialValues: Record<string, string> = {};
         analysis.variables.forEach(v => initialValues[v] = '');
         setFormValues(initialValues);
         
-        // Initial preview logic
         updatePreview(initialValues, analysis);
         
         setStep('fill');
@@ -95,7 +91,6 @@ const TemplateManager: React.FC = () => {
     setShowDriveModal(false);
     setIsProcessing(true);
     
-    // Simulación de contenido de Drive
     setTimeout(async () => {
         let content = "";
         if (file.type === 'docx') {
@@ -150,11 +145,9 @@ const TemplateManager: React.FC = () => {
           if (!val) {
                replacement = `[${key}]`;
           } else if (val.startsWith('data:image')) {
-               // Use a unique marker for images that we can parse later in render
                replacement = `<<IMG_DATA:${key}>>`;
           }
           
-          // Escape key for regex
           const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const regex = new RegExp(`\\[${safeKey}\\]`, 'g');
           text = text.replace(regex, replacement);
@@ -163,7 +156,6 @@ const TemplateManager: React.FC = () => {
   };
 
   const renderDocContent = (text: string) => {
-    // Split text by the image marker regex
     const parts = text.split(/(<<IMG_DATA:.*?>>)/g);
     return parts.map((part, index) => {
         if (part.startsWith('<<IMG_DATA:')) {
@@ -188,7 +180,6 @@ const TemplateManager: React.FC = () => {
   };
 
   const handleCopy = () => {
-     // For copy, we might want to strip image markers or warn
     const plainText = generatedDoc.replace(/<<IMG_DATA:.*?>>/g, '[IMAGEN ADJUNTA]');
     navigator.clipboard.writeText(plainText);
     alert('Texto copiado al portapapeles (las imágenes no se copian como texto).');
@@ -203,16 +194,16 @@ const TemplateManager: React.FC = () => {
 
   if (step === 'upload') {
       return (
-        <div className="max-w-4xl mx-auto pt-10 px-6 h-full flex flex-col">
-            <div className="text-center mb-10">
-                <h2 className="text-3xl font-bold text-slate-900">Gestor de Plantillas <span className="text-[#3BB339]">Inteligente</span></h2>
-                <p className="text-slate-500 mt-2">Sube una plantilla (PDF, Word, TXT) y la IA detectará los campos a rellenar automáticamente.</p>
+        <div className="max-w-4xl mx-auto pt-6 px-4 md:pt-10 md:px-6 h-full flex flex-col">
+            <div className="text-center mb-6 md:mb-10">
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Gestor de Plantillas <span className="text-[#3BB339]">Inteligente</span></h2>
+                <p className="text-slate-500 mt-2 text-sm md:text-base">Sube una plantilla (PDF, Word, TXT) y la IA detectará los campos a rellenar automáticamente.</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden flex-1 max-h-[600px]">
-                <div className="p-10 h-full flex flex-col justify-center">
+                <div className="p-4 md:p-10 h-full flex flex-col justify-center">
                 <div 
-                    className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center transition-colors h-full ${isDragging ? 'border-[#1D99CC] bg-blue-50' : 'border-slate-300 hover:border-slate-400'}`}
+                    className={`border-2 border-dashed rounded-xl p-6 md:p-12 flex flex-col items-center justify-center transition-colors h-full ${isDragging ? 'border-[#1D99CC] bg-blue-50' : 'border-slate-300 hover:border-slate-400'}`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={(e) => {
@@ -222,22 +213,22 @@ const TemplateManager: React.FC = () => {
                         if (file) handleFileUpload(file);
                     }}
                 >
-                    <div className="bg-slate-100 p-4 rounded-full mb-4">
-                       <UploadCloud className="h-10 w-10 text-slate-600" />
+                    <div className="bg-slate-100 p-3 md:p-4 rounded-full mb-4">
+                       <UploadCloud className="h-8 w-8 md:h-10 md:w-10 text-slate-600" />
                     </div>
-                    <h3 className="text-xl font-semibold text-slate-900 mb-2">Arrastra tu plantilla aquí</h3>
-                    <p className="text-slate-500 mb-8">Soporta .docx, .pdf, .txt</p>
+                    <h3 className="text-lg md:text-xl font-semibold text-slate-900 mb-2 text-center">Arrastra tu plantilla aquí</h3>
+                    <p className="text-slate-500 mb-6 text-sm md:text-base">Soporta .docx, .pdf, .txt</p>
                     
-                    <div className="flex space-x-4">
-                        <label className="px-6 py-3 bg-[#1D99CC] hover:bg-[#1681ad] text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center shadow-md">
+                    <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                        <label className="px-6 py-3 bg-[#1D99CC] hover:bg-[#1681ad] text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center justify-center shadow-md">
                             <FileText className="w-5 h-5 mr-2"/>
                             Subir Documento
                             <input type="file" className="hidden" accept=".pdf,.docx,.txt" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
                         </label>
-                        <span className="flex items-center text-slate-400">o</span>
+                        <span className="hidden sm:flex items-center text-slate-400">o</span>
                         <button 
                             onClick={() => setShowDriveModal(true)}
-                            className="px-6 py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center"
+                            className="px-6 py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center justify-center"
                         >
                             <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5 mr-2" />
                             Google Drive
@@ -249,7 +240,7 @@ const TemplateManager: React.FC = () => {
 
             {isProcessing && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white p-8 rounded-xl shadow-xl flex flex-col items-center max-w-sm text-center">
+                    <div className="bg-white p-8 rounded-xl shadow-xl flex flex-col items-center max-w-sm text-center mx-4">
                         <Loader2 className="h-12 w-12 text-[#1D99CC] animate-spin mb-4" />
                         <h3 className="text-xl font-bold text-slate-900">Analizando Plantilla...</h3>
                         <p className="text-slate-500 mt-2 text-sm">Identificando espacios, variables y zonas de imagen.</p>
@@ -259,7 +250,7 @@ const TemplateManager: React.FC = () => {
 
             {/* Drive Modal */}
             {showDriveModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
                     <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
                         <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-800 flex items-center">
@@ -301,22 +292,22 @@ const TemplateManager: React.FC = () => {
 
   // FILL STEP
   return (
-    <div className="p-6 h-full flex flex-col bg-slate-50">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 md:p-6 h-full flex flex-col bg-slate-50">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-            <h1 className="text-2xl font-bold text-slate-900">Rellenar Plantilla</h1>
-            <p className="text-slate-500">Completa los campos detectados, incluidos textos e imágenes.</p>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-900">Rellenar Plantilla</h1>
+            <p className="text-slate-500 text-sm md:text-base">Completa los campos detectados, incluidos textos e imágenes.</p>
         </div>
         <button onClick={reset} className="flex items-center text-slate-500 hover:text-slate-800 text-sm font-medium">
             <RefreshCw className="h-4 w-4 mr-2" /> Subir otra plantilla
         </button>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 overflow-y-auto lg:overflow-visible">
         
         {/* Left Column: Form */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden h-fit lg:h-auto">
+          <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center sticky top-0 bg-slate-50 z-10">
              <h3 className="font-bold text-slate-800 flex items-center">
                <PenTool className="h-4 w-4 mr-2 text-[#1D99CC]" />
                Campos Detectados
@@ -326,7 +317,7 @@ const TemplateManager: React.FC = () => {
              </span>
           </div>
           
-          <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+          <div className="flex-1 flex flex-col p-4 md:p-6 lg:overflow-y-auto">
             <div className="space-y-6">
                 {templateAnalysis?.variables.map((field) => {
                     const isImg = isImageField(field);
@@ -349,7 +340,7 @@ const TemplateManager: React.FC = () => {
                                         ) : (
                                             <div className="flex flex-col items-center">
                                                 <UploadCloud className="h-8 w-8 mb-2" />
-                                                <span className="text-sm leading-normal">Seleccionar Foto</span>
+                                                <span className="text-sm leading-normal text-center">Seleccionar Foto</span>
                                             </div>
                                         )}
                                         <input type='file' className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageUpload(field, e.target.files[0])} />
@@ -377,8 +368,8 @@ const TemplateManager: React.FC = () => {
         </div>
 
         {/* Right Column: Preview */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
-           <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden h-[500px] lg:h-auto">
+           <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center sticky top-0 bg-slate-50 z-10">
              <h3 className="font-bold text-slate-800 flex items-center">
                <FileText className="h-4 w-4 mr-2 text-[#3BB339]" />
                Vista Previa
@@ -393,7 +384,7 @@ const TemplateManager: React.FC = () => {
              </div>
            </div>
 
-           <div className="flex-1 p-8 overflow-y-auto bg-white">
+           <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-white">
              <div className="max-w-none prose prose-slate">
                 <pre className="whitespace-pre-wrap font-sans text-slate-700 leading-relaxed text-sm">
                   {renderDocContent(generatedDoc)}

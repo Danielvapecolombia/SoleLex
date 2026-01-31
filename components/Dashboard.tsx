@@ -25,75 +25,74 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onSelectContract }) =>
   ).length;
 
   // Chart Data - Using SoleLex Palette
-  // Green: #3BB339, Blue: #1D99CC, Grey: #B3B3B3
   const complianceData = [
-    { name: 'Sin Errores', value: contracts.filter(c => c.status === 'analyzed' && (c.analysis?.riskScore || 0) < 20).length, color: '#3BB339' }, // SoleLex Green
-    { name: 'Riesgo Alto', value: highRiskContracts.length, color: '#ef4444' }, // Alert Red (Keep for critical)
-    { name: 'Financiero', value: financialErrors, color: '#1D99CC' }, // SoleLex Blue
-    { name: 'Plazos', value: contracts.flatMap(c => c.analysis?.deadlines.filter(d => d.isOverdue) || []).length, color: '#B3B3B3' }, // SoleLex Grey
+    { name: 'Sin Errores', value: contracts.filter(c => c.status === 'analyzed' && (c.analysis?.riskScore || 0) < 20).length, color: '#3BB339' }, 
+    { name: 'Riesgo Alto', value: highRiskContracts.length, color: '#ef4444' }, 
+    { name: 'Financiero', value: financialErrors, color: '#1D99CC' }, 
+    { name: 'Plazos', value: contracts.flatMap(c => c.analysis?.deadlines.filter(d => d.isOverdue) || []).length, color: '#B3B3B3' }, 
   ];
 
   return (
-    <div className="p-8 space-y-8 animate-fade-in">
-      <div className="flex justify-between items-end">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Panel de Control</h1>
-          <p className="text-slate-500 mt-1">Resumen de cumplimiento <span className="text-[#1D99CC] font-medium">SoleLex CLM</span></p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Panel de Control</h1>
+          <p className="text-slate-500 mt-1 text-sm md:text-base">Resumen de cumplimiento <span className="text-[#1D99CC] font-medium">SoleLex CLM</span></p>
         </div>
-        <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 shadow-sm">
+        <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 shadow-sm self-start md:self-auto">
           {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-slate-500">Contratos Analizados</h3>
             <div className="p-2 bg-[#EAF8E9] rounded-lg">
               <CheckCircle className="h-5 w-5 text-[#3BB339]" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">{totalAnalyzed}</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-900">{totalAnalyzed}</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-slate-500">Alertas de Riesgo</h3>
             <div className="p-2 bg-red-50 rounded-lg">
               <AlertTriangle className="h-5 w-5 text-red-600" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">{highRiskContracts.length}</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-900">{highRiskContracts.length}</p>
           <p className="text-xs text-red-500 mt-1">Requieren atención inmediata</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-slate-500">Próximos Deadlines</h3>
             <div className="p-2 bg-[#E1F3FA] rounded-lg">
               <Clock className="h-5 w-5 text-[#1D99CC]" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">{upcomingDeadlines}</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-900">{upcomingDeadlines}</p>
           <p className="text-xs text-slate-500 mt-1">En los próximos 30 días</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-slate-500">Errores Financieros</h3>
             <div className="p-2 bg-slate-100 rounded-lg">
               <DollarSign className="h-5 w-5 text-[#B3B3B3]" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">{financialErrors}</p>
+          <p className="text-2xl md:text-3xl font-bold text-slate-900">{financialErrors}</p>
           <p className="text-xs text-slate-500 mt-1">Discrepancias detectadas</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         {/* Chart Section */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="lg:col-span-2 bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-900 mb-6">Estado de Contratos</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -113,7 +112,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onSelectContract }) =>
         </div>
 
         {/* Priority List */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-900 mb-4">Acción Requerida</h3>
           <div className="space-y-4">
             {highRiskContracts.length === 0 && (
@@ -122,11 +121,11 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onSelectContract }) =>
             {highRiskContracts.slice(0, 4).map((contract) => (
               <div key={contract.id} className="p-3 bg-red-50 border border-red-100 rounded-lg cursor-pointer hover:bg-red-100 transition-colors" onClick={() => onSelectContract(contract)}>
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-slate-800 text-sm line-clamp-1">{contract.title}</h4>
+                  <div className="min-w-0 pr-2">
+                    <h4 className="font-semibold text-slate-800 text-sm truncate">{contract.title}</h4>
                     <p className="text-xs text-red-600 mt-1 font-medium">Score de Riesgo: {contract.analysis?.riskScore}</p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-red-400" />
+                  <ArrowRight className="h-4 w-4 text-red-400 shrink-0" />
                 </div>
               </div>
             ))}

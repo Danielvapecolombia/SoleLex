@@ -6,11 +6,13 @@ import ContractDetail from './components/ContractDetail';
 import ContractList from './components/ContractList';
 import TemplateManager from './components/TemplateManager';
 import { ViewState, Contract } from './types';
+import { Menu, Leaf } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleAnalysisComplete = (newContract: Contract) => {
     setContracts(prev => [newContract, ...prev]);
@@ -62,13 +64,38 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar currentView={currentView} onChangeView={setCurrentView} />
+      <Sidebar 
+        currentView={currentView} 
+        onChangeView={setCurrentView} 
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
       
-      <main className="flex-1 ml-64 overflow-hidden h-screen relative">
-         {/* Background accent - Adjusted to light blue/green tint */}
-         <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-r from-[#3BB339]/5 to-[#1D99CC]/5 -z-10"></div>
-         {renderContent()}
-      </main>
+      {/* Main Content Wrapper */}
+      <div className="flex-1 flex flex-col md:ml-64 h-screen relative transition-all duration-300">
+         
+         {/* Mobile Header */}
+         <div className="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+            <div className="flex items-center space-x-2">
+               <div className="bg-gradient-to-r from-[#3BB339] to-[#1D99CC] p-1.5 rounded-full">
+                  <Leaf className="h-5 w-5 text-white" fill="white" />
+               </div>
+               <span className="font-bold text-slate-800 text-lg">SoleLex</span>
+            </div>
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+         </div>
+
+         <main className="flex-1 overflow-x-hidden overflow-y-auto relative">
+            {/* Background accent */}
+            <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-r from-[#3BB339]/5 to-[#1D99CC]/5 -z-10"></div>
+            {renderContent()}
+         </main>
+      </div>
     </div>
   );
 };

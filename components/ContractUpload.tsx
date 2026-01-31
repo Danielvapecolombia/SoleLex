@@ -38,7 +38,6 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
           throw new Error("PDF.js library not fully loaded.");
       }
       
-      // Configuración robusta con CMaps y Fuentes estándar para evitar errores de lectura
       const loadingTask = pdfjsLib.getDocument({ 
         data: arrayBuffer,
         cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
@@ -48,7 +47,6 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
 
       const pdf = await loadingTask.promise;
       
-      // Procesamiento en paralelo de las páginas para agilizar la carga
       const pagePromises = Array.from({ length: pdf.numPages }, (_, i) => i + 1).map(async (pageNum) => {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
@@ -62,7 +60,6 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
       
     } catch (e: any) {
       console.error("Error parsing PDF", e);
-      // Mensaje de error más detallado
       throw new Error(`Error técnico leyendo PDF: ${e.message || e}. Si el error persiste, intente convertir el PDF a texto o usar otro navegador.`);
     }
   };
@@ -130,17 +127,17 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
   };
 
   return (
-    <div className="max-w-4xl mx-auto pt-10 px-6">
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-slate-900">Analizar Nuevo Contrato</h2>
-        <p className="text-slate-500 mt-2">Sube un documento PDF o texto, o impórtalo desde Google Drive.</p>
+    <div className="max-w-4xl mx-auto pt-6 px-4 md:pt-10 md:px-6">
+      <div className="text-center mb-8 md:mb-10">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Analizar Nuevo Contrato</h2>
+        <p className="text-slate-500 mt-2 text-sm md:text-base">Sube un documento PDF o texto, o impórtalo desde Google Drive.</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
         {/* Main Upload Area */}
-        <div className="p-10">
+        <div className="p-4 md:p-10">
           <div 
-            className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center transition-colors ${isDragging ? 'border-[#1D99CC] bg-blue-50' : 'border-slate-300 hover:border-slate-400'}`}
+            className={`border-2 border-dashed rounded-xl p-6 md:p-12 flex flex-col items-center justify-center transition-colors ${isDragging ? 'border-[#1D99CC] bg-blue-50' : 'border-slate-300 hover:border-slate-400'}`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={(e) => {
@@ -152,22 +149,22 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
               }
             }}
           >
-            <div className="bg-slate-100 p-4 rounded-full mb-4">
-              <UploadCloud className="h-10 w-10 text-slate-600" />
+            <div className="bg-slate-100 p-3 md:p-4 rounded-full mb-4">
+              <UploadCloud className="h-8 w-8 md:h-10 md:w-10 text-slate-600" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">Arrastra y suelta tu contrato aquí</h3>
-            <p className="text-slate-500 mb-6">Soporta formatos PDF y TXT</p>
+            <h3 className="text-lg md:text-xl font-semibold text-slate-900 mb-2 text-center">Arrastra y suelta tu contrato aquí</h3>
+            <p className="text-slate-500 mb-6 text-sm md:text-base">Soporta formatos PDF y TXT</p>
             
-            <div className="flex space-x-4">
-              <label className="px-6 py-2.5 bg-[#1D99CC] hover:bg-[#1681ad] text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center shadow-md">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <label className="px-6 py-2.5 bg-[#1D99CC] hover:bg-[#1681ad] text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center justify-center shadow-md">
                 <FileText className="w-4 h-4 mr-2"/>
                 Subir Archivo
                 <input type="file" className="hidden" accept=".pdf,.txt,.md" onChange={handleFileUpload} />
               </label>
-              <span className="flex items-center text-slate-400">o</span>
+              <span className="hidden sm:flex items-center text-slate-400">o</span>
               <button 
                 onClick={() => setShowDriveModal(true)}
-                className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center"
+                className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center justify-center"
               >
                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5 mr-2" />
                 Google Drive
@@ -179,7 +176,7 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
 
       {isProcessing && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl shadow-xl flex flex-col items-center max-w-sm text-center">
+          <div className="bg-white p-8 rounded-xl shadow-xl flex flex-col items-center max-w-sm text-center mx-4">
             <Loader2 className="h-12 w-12 text-[#1D99CC] animate-spin mb-4" />
             <h3 className="text-xl font-bold text-slate-900">Procesando Documento...</h3>
             <p className="text-slate-500 mt-2 text-sm">Extrayendo texto y analizando condiciones legales, plazos y montos.</p>
@@ -189,7 +186,7 @@ const ContractUpload: React.FC<ContractUploadProps> = ({ onAnalysisComplete }) =
 
       {/* Drive Modal */}
       {showDriveModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
           <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
               <h3 className="font-bold text-slate-800 flex items-center">
